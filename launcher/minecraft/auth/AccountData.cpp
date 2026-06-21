@@ -291,6 +291,8 @@ bool AccountData::resumeStateFromV3(QJsonObject data)
         type = AccountType::MSA;
     } else if (typeS == "Offline") {
         type = AccountType::Offline;
+    } else if (typeS == "Ely") {
+        type = AccountType::Ely;
     } else {
         qWarning() << "Failed to parse account data: type is not recognized.";
         return false;
@@ -333,6 +335,10 @@ QJsonObject AccountData::saveState() const
         tokenToJSONV3(output, msaToken, "msa");
         tokenToJSONV3(output, userToken, "utoken");
         tokenToJSONV3(output, mojangservicesToken, "xrp-mc");
+    } else if (type == AccountType::Ely) {
+        output["type"] = "Ely";
+        // Ely will store credentials in ygg token extra (but avoid saving passwords)
+        // ygg token is saved below as usual.
     } else if (type == AccountType::Offline) {
         output["type"] = "Offline";
     }

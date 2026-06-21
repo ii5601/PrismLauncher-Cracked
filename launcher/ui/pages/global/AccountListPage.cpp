@@ -38,6 +38,8 @@
 #include "ui/dialogs/skins/SkinManageDialog.h"
 #include "ui_AccountListPage.h"
 
+#include "ui/dialogs/YggdrasilLoginDialog.h"
+
 #include <QItemSelectionModel>
 #include <QMenu>
 #include <QPushButton>
@@ -88,6 +90,11 @@ AccountListPage::AccountListPage(QWidget* parent) : QMainWindow(parent), ui(new 
         ui->actionAddMicrosoft->setVisible(false);
         ui->actionAddMicrosoft->setToolTip(tr("No Microsoft Authentication client ID was set."));
     }
+
+    // Add 'Add Ely' action for Yggdrasil-compatible providers (Ely.by)
+    QAction* addEly = new QAction(tr("Add Ely"), this);
+    ui->toolBar->addAction(addEly);
+    connect(addEly, &QAction::triggered, this, &AccountListPage::on_actionAddEly_triggered);
 }
 
 AccountListPage::~AccountListPage()
@@ -131,6 +138,18 @@ void AccountListPage::on_actionAddMicrosoft_triggered()
 {
     auto account = MSALoginDialog::newAccount(this);
     if (account) {
+        m_accounts->addAccount(account);
+        if (m_accounts->count() == 1) {
+            m_accounts->setDefaultAccount(account);
+        }
+    }
+}
+
+void AccountListPage::on_actionAddEly_triggered()
+{
+    auto account = ::YggdrasilLoginDialog::newAccount(this);
+    if (account) {
+        account->login()->start();
         m_accounts->addAccount(account);
         if (m_accounts->count() == 1) {
             m_accounts->setDefaultAccount(account);

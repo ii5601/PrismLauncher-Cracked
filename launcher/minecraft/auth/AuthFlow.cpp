@@ -11,6 +11,7 @@
 #include "minecraft/auth/steps/MinecraftProfileStep.h"
 #include "minecraft/auth/steps/XboxAuthorizationStep.h"
 #include "minecraft/auth/steps/XboxUserStep.h"
+#include "minecraft/auth/steps/YggdrasilStep.h"
 #include "tasks/Task.h"
 
 #include "AuthFlow.h"
@@ -34,6 +35,13 @@ AuthFlow::AuthFlow(AccountData* data, Action action) : Task(), m_data(data)
         m_steps.append(
             makeShared<XboxAuthorizationStep>(m_data, &m_data->mojangservicesToken, "rp://api.minecraftservices.com/", "Mojang"));
         m_steps.append(makeShared<LauncherLoginStep>(m_data));
+        m_steps.append(makeShared<EntitlementsStep>(m_data));
+        m_steps.append(makeShared<MinecraftProfileStep>(m_data));
+        m_steps.append(makeShared<GetSkinStep>(m_data));
+    }
+    else if (data->type == AccountType::Ely) {
+        // Yggdrasil-compatible login (e.g., Ely.by)
+        m_steps.append(makeShared<YggdrasilStep>(m_data));
         m_steps.append(makeShared<EntitlementsStep>(m_data));
         m_steps.append(makeShared<MinecraftProfileStep>(m_data));
         m_steps.append(makeShared<GetSkinStep>(m_data));
