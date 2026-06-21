@@ -25,12 +25,7 @@ void EntitlementsStep::perform()
 {
     m_entitlements_request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-    QUrl url("https://api.minecraftservices.com/entitlements/license?requestId=" + m_entitlements_request_id);
-    auto headers = QList<Net::HeaderPair>{ { "Content-Type", "application/json" },
-                                           { "Accept", "application/json" },
-                                           { "Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8() } };
-
-    auto [request, response] = Net::Download::makeByteArray(url);
+   auto [request, response] = Net::Download::makeByteArray(url);
     m_request = request;
     m_request->addHeaderProxy(std::make_unique<Net::RawHeaderProxy>(headers));
     m_request->enableAutoRetry(true);

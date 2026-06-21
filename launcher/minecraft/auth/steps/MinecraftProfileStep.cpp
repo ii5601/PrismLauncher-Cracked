@@ -16,10 +16,13 @@ QString MinecraftProfileStep::describe()
 
 void MinecraftProfileStep::perform()
 {
-    QUrl url("https://api.minecraftservices.com/minecraft/profile");
+    QUrl url("https://authserver.ely.by/auth/refresh");
+    QString accessToken = m_data->yggdrasilToken.token;
+    QString clientToken = m_data->yggdrasilToken.clientToken;
     auto headers = QList<Net::HeaderPair>{ { "Content-Type", "application/json" },
                                            { "Accept", "application/json" },
-                                           { "Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8() } };
+                                           { "accessToken", arg(accessToken).toUtf8() },
+                                           { "clientToken", arg(clientToken).toUtf8() } };
 
     auto [request, response] = Net::Download::makeByteArray(url);
     m_request = request;

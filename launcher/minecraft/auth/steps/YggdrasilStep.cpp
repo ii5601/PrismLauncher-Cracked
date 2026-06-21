@@ -32,7 +32,7 @@ void YggdrasilStep::perform()
     }
     QString endpoint;
     if (authServer.isEmpty()) {
-        endpoint = QString("https://authserver.mojang.com/authenticate");
+        endpoint = QString("https://authserver.ely.by");
     } else {
         QUrl authUrl(authServer.trimmed());
         if (authUrl.scheme().isEmpty()) {
@@ -130,6 +130,7 @@ void YggdrasilStep::onRequestDone(QByteArray* response)
     }
 
     QString accessToken = obj.value("accessToken").toString();
+    QString responseClientToken = obj.value("clientToken").toString();
     auto selectedProfile = obj.value("selectedProfile").toObject();
     QString profileId = selectedProfile.value("id").toString();
     QString profileName = selectedProfile.value("name").toString();
@@ -142,6 +143,10 @@ void YggdrasilStep::onRequestDone(QByteArray* response)
     m_data->yggdrasilToken.token = accessToken;
     m_data->yggdrasilToken.validity = Validity::Certain;
     m_data->yggdrasilToken.issueInstant = QDateTime::currentDateTimeUtc();
+    // Save clientToken from response (server may return different token)
+    if (!responseClientToken.isEmpty()) {
+        m_data->yggdrasilToken.extra["clientToken"] = responseClientToken;
+    }
     // clear password for security
     m_data->yggdrasilToken.extra.remove("password");
 
