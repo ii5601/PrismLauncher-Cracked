@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <QDateTime>
+#include <QUuid>
 
 #include "Application.h"
 #include "Logging.h"
@@ -29,7 +30,32 @@ void YggdrasilStep::perform()
     if (authServer.isEmpty()) {
         authServer = m_data->yggdrasilToken.extra.value("authServer").toString();
     }
-    QString endpoint = authServer.isEmpty() ? QString("https://authserver.mojang.com/authenticate") : authServer + QLatin1String("/authenticate");
+    QString endpoint;
+    if (authServer.isEmpty()) {
+        endpoint = QString("https://authserver.mojang.com/authenticate");
+    } else {
+        QUrl authUrl(authServer.trimmed());
+        if (authUrl.scheme().isEmpty()) {
+            authUrl.setScheme("https");
+        }
+        QString path = authUrl.path();
+        if (path.isEmpty() || path == "/") {
+            path = "/auth";
+        }
+        if (!path.endsWith("/authenticate")) {
+            if (path.endsWith('/')) {
+                path.chop(1);
+            }
+            if (!path.endsWith("/auth")) {
+                path += "/auth";
+            }
+            path += "/authenticate";
+        }
+        authUrl.setPath(path);
+        authUrl.setQuery(QString());
+        authUrl.setFragment(QString());
+        endpoint = authUrl.toString(QUrl::RemoveQuery | QUrl::RemoveFragment);
+    }
     QUrl url(endpoint);
 
     // Expect username/password in m_data->yggdrasilToken.extra["username"/"password"] set by the dialog.
@@ -48,6 +74,13 @@ void YggdrasilStep::perform()
     payload["agent"] = agent;
     payload["username"] = username;
     payload["password"] = password;
+    payload["requestUser"] = true;
+    QString clientToken = m_data->yggdrasilToken.extra.value("clientToken").toString();
+    if (clientToken.isEmpty()) {
+        clientToken = QUuid::createUuid().toString(QUuid::Id128);
+        m_data->yggdrasilToken.extra["clientToken"] = clientToken;
+    }
+    payload["clientToken"] = clientToken;
 
     auto [request, response] = Net::Upload::makeByteArray(url, QJsonDocument(payload).toJson());
     m_request = request;
@@ -83,6 +116,19 @@ void YggdrasilStep::onRequestDone(QByteArray* response)
         return;
     }
     auto obj = doc.object();
+
+    QString error = obj.value("error").toString();
+    QString errorMessage = obj.value("errorMessage").toString();
+    QString cause = obj.value("cause").toString();
+    if (!error.isEmpty() || !errorMessage.isEmpty()) {
+        QString errText = errorMessage.isEmpty() ? error : errorMessage;
+        if (!cause.isEmpty()) {
+            errText += QString(" (%1)").arg(cause);
+        }
+        emit finished(AccountTaskState::STATE_FAILED_SOFT, tr("Authentication failed: %1").arg(errText));
+        return;
+    }
+
     QString accessToken = obj.value("accessToken").toString();
     auto selectedProfile = obj.value("selectedProfile").toObject();
     QString profileId = selectedProfile.value("id").toString();
