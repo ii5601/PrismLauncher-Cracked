@@ -73,8 +73,6 @@ jobs:
   build:
     name: Build (${{ matrix.artifact-name }})
 
-    environment: ${{ inputs.environment || '' }}
-
     permissions:
       contents: read
       # Required for Azure Trusted Signing
@@ -136,7 +134,7 @@ jobs:
     env:
       ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
       BUILD_PLATFORM: official
-      BUILD_TYPE: ${{ inputs['build-type'] || 'Debug' }}
+      BUILD_TYPE: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && inputs['build-type'] || 'Debug' }}
       CMAKE_PRESET: ${{ matrix.cmake-preset }}
 
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macosx-deployment-target }}
@@ -147,13 +145,11 @@ jobs:
       ##
 
       - name: Checkout
-        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         uses: actions/checkout@v6
         with:
           submodules: true
 
       - name: Setup dependencies
-        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         id: setup-dependencies
         uses: ./.github/actions/setup-dependencies
         with:
@@ -168,12 +164,10 @@ jobs:
       ##
 
       - name: Configure project
-        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         run: |
           cmake --preset "$CMAKE_PRESET"
 
       - name: Run build
-        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         run: |
           cmake --build --preset "$CMAKE_PRESET" --config "$BUILD_TYPE"
 
@@ -187,14 +181,13 @@ jobs:
       ##
 
       - name: Get short version
-        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         id: short-version
         shell: bash
         run: |
           echo "version=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Package (Linux)
-        if: ${{ startsWith(matrix.os, 'ubuntu') && (github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: ./.github/actions/package/linux
         with:
           version: ${{ steps.short-version.outputs.version }}
@@ -206,7 +199,7 @@ jobs:
           gpg-private-key-id: ${{ secrets.GPG_PRIVATE_KEY_ID }}
 
       - name: Package (macOS)
-        if: ${{ startsWith(matrix.os, 'macos') && (github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows') }}
+        if: ${{ startsWith(matrix.os, 'macos') }}
         uses: ./.github/actions/package/macos
         with:
           version: ${{ steps.short-version.outputs.version }}
@@ -222,7 +215,7 @@ jobs:
           sparkle-ed25519-key: ${{ secrets.SPARKLE_ED25519_KEY }}
 
       - name: Package (Windows)
-        if: ${{ startsWith(matrix.os, 'windows') && (github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['run-package']) }}
+        if: ${{ startsWith(matrix.os, 'windows') && (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && inputs['run-package'] }}
         uses: ./.github/actions/package/windows
         env:
           CI_HAS_ACCESS_TO_AZURE: ${{ vars.CI_HAS_ACCESS_TO_AZURE || '' }}
