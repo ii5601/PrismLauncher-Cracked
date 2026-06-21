@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #pragma once
 
-#include "AuthStep.h"
+#include "minecraft/auth/AuthStep.h"
 
 class YggdrasilStep : public AuthStep {
     Q_OBJECT
