@@ -3,15 +3,17 @@
 
 #include <QNetworkReply>
 #include <QJsonDocument>
-
-#include "net/NetUtils.h"
-#include "net/Upload.h"
-#include "net/RawHeaderProxy.h"
-#include "net/NetJob.h"
 #include <QJsonObject>
+#include <QUrl>
 #include <QDateTime>
-#include "minecraft/auth/Parsers.h"
+
 #include "Application.h"
+#include "Logging.h"
+#include "minecraft/auth/Parsers.h"
+#include "net/NetUtils.h"
+#include "net/RawHeaderProxy.h"
+#include "net/Upload.h"
+#include "net/NetJob.h"
 
 YggdrasilStep::YggdrasilStep(AccountData* data, QString authServer) : AuthStep(data), m_authServer(authServer) {}
 

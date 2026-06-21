@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #pragma once
 
+#include <QString>
+#include <QByteArray>
+
 #include "minecraft/auth/AuthStep.h"
+#include "net/Upload.h"
+#include "net/NetJob.h"
 
 class YggdrasilStep : public AuthStep {
     Q_OBJECT
@@ -15,6 +20,7 @@ class YggdrasilStep : public AuthStep {
     void onRequestDone(QByteArray* response);
 
    private:
-    QNetworkRequest* m_request = nullptr;
+    Net::Upload::Ptr m_request;
+    NetJob::Ptr m_task;
     QString m_authServer;
 };
