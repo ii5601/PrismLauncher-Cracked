@@ -14,6 +14,22 @@ on:
         description: Type of build (Debug or Release)
         type: string
         default: Debug
+      target-os:
+        description: Target OS to build. Use 'windows' to only build Windows.
+        type: string
+        default: all
+      run-tests:
+        description: Run tests after building.
+        type: boolean
+        default: true
+      run-package:
+        description: Package build outputs.
+        type: boolean
+        default: true
+      package-mode:
+        description: Package mode for Windows builds.
+        type: string
+        default: all
       environment:
         description: Deployment environment to run under
         type: string
@@ -23,6 +39,33 @@ on:
         description: Type of build (Debug or Release)
         type: string
         default: Debug
+      target-os:
+        description: Target OS to build. Use 'windows' to only build Windows.
+        type: choice
+        default: all
+        options:
+          - all
+          - windows
+      run-tests:
+        description: Run tests after building.
+        type: boolean
+        default: true
+      run-package:
+        description: Package build outputs.
+        type: boolean
+        default: true
+      package-mode:
+        description: Package mode for Windows builds.
+        type: choice
+        default: all
+        options:
+          - all
+          - portable
+          - installer
+          - binary
+      environment:
+        description: Deployment environment to run under
+        type: string
 
 permissions: {}
 
@@ -93,7 +136,7 @@ jobs:
     env:
       ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
       BUILD_PLATFORM: official
-      BUILD_TYPE: ${{ inputs.build-type || 'Debug' }}
+      BUILD_TYPE: ${{ inputs['build-type'] || 'Debug' }}
       CMAKE_PRESET: ${{ matrix.cmake-preset }}
 
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macosx-deployment-target }}
@@ -104,11 +147,13 @@ jobs:
       ##
 
       - name: Checkout
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         uses: actions/checkout@v6
         with:
           submodules: true
 
       - name: Setup dependencies
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         id: setup-dependencies
         uses: ./.github/actions/setup-dependencies
         with:
@@ -123,14 +168,17 @@ jobs:
       ##
 
       - name: Configure project
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         run: |
           cmake --preset "$CMAKE_PRESET"
 
       - name: Run build
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         run: |
           cmake --build --preset "$CMAKE_PRESET" --config "$BUILD_TYPE"
 
       - name: Run tests
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['run-tests'] }}
         run: |
           ctest --preset "$CMAKE_PRESET" --build-config "$BUILD_TYPE"
 
@@ -139,13 +187,14 @@ jobs:
       ##
 
       - name: Get short version
+        if: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows' || startsWith(matrix.os, 'windows') }}
         id: short-version
         shell: bash
         run: |
           echo "version=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Package (Linux)
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && (github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows') }}
         uses: ./.github/actions/package/linux
         with:
           version: ${{ steps.short-version.outputs.version }}
@@ -157,7 +206,7 @@ jobs:
           gpg-private-key-id: ${{ secrets.GPG_PRIVATE_KEY_ID }}
 
       - name: Package (macOS)
-        if: ${{ runner.os == 'macOS' }}
+        if: ${{ startsWith(matrix.os, 'macos') && (github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['target-os'] != 'windows') }}
         uses: ./.github/actions/package/macos
         with:
           version: ${{ steps.short-version.outputs.version }}
@@ -173,7 +222,7 @@ jobs:
           sparkle-ed25519-key: ${{ secrets.SPARKLE_ED25519_KEY }}
 
       - name: Package (Windows)
-        if: ${{ runner.os == 'Windows' }}
+        if: ${{ startsWith(matrix.os, 'windows') && (github.event_name != 'workflow_dispatch' && github.event_name != 'workflow_call' || inputs['run-package']) }}
         uses: ./.github/actions/package/windows
         env:
           CI_HAS_ACCESS_TO_AZURE: ${{ vars.CI_HAS_ACCESS_TO_AZURE || '' }}
@@ -182,6 +231,7 @@ jobs:
           build-type: ${{ steps.setup-dependencies.outputs.build-type }}
           artifact-name: ${{ matrix.artifact-name }}
           msystem: ${{ matrix.msystem }}
+          package-mode: ${{ inputs['package-mode'] }}
 
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}

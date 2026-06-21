@@ -3,8 +3,7 @@
 
 #include <QDialog>
 
-class MinecraftAccount;
-using MinecraftAccountPtr = std::shared_ptr<MinecraftAccount>;
+#include "minecraft/auth/MinecraftAccount.h"
 
 class YggdrasilLoginDialog : public QDialog {
     Q_OBJECT

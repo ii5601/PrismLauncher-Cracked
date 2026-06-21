@@ -12,6 +12,10 @@ inputs:
   artifact-name:
     description: Name of the uploaded artifact
     required: true
+  package-mode:
+    description: Which windows package variants to create.
+    required: false
+    default: all
   msystem:
     description: MSYS2 subsystem to use
     required: false
@@ -168,18 +172,21 @@ runs:
         exclude-interactive-browser-credential: true
 
     - name: Upload binary zip
+      if: ${{ inputs.package-mode == 'all' || inputs.package-mode == 'binary' }}
       uses: actions/upload-artifact@v7
       with:
         name: PrismLauncher-${{ inputs.artifact-name }}-${{ inputs.version }}-${{ inputs.build-type }}
         path: install/**
 
     - name: Upload portable zip
+      if: ${{ inputs.package-mode == 'all' || inputs.package-mode == 'portable' }}
       uses: actions/upload-artifact@v7
       with:
         name: PrismLauncher-${{ inputs.artifact-name }}-Portable-${{ inputs.version }}-${{ inputs.build-type }}
         path: install-portable/**
 
     - name: Upload installer
+      if: ${{ inputs.package-mode == 'all' || inputs.package-mode == 'installer' }}
       uses: actions/upload-artifact@v7
       with:
         name: PrismLauncher-${{ inputs.artifact-name }}-Setup-${{ inputs.version }}-${{ inputs.build-type }}
