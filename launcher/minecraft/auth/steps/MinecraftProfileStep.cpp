@@ -16,16 +16,29 @@ QString MinecraftProfileStep::describe()
 
 void MinecraftProfileStep::perform()
 {
-    QUrl url("https://api.ely.by/minecraft/profile");
-    QString accessToken = m_data->yggdrasilToken.token;
-    // Retrieve clientToken from the extra map (saved during YggdrasilStep)
-    QString clientToken = m_data->yggdrasilToken.extra.value("clientToken").toString();
-    // Build headers list manually to avoid arg() issues
+    QUrl url;
     QList<Net::HeaderPair> headers;
     headers << Net::HeaderPair("Content-Type", "application/json");
     headers << Net::HeaderPair("Accept", "application/json");
-    headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(accessToken).toUtf8());
-    headers << Net::HeaderPair("clientToken", clientToken.toUtf8());
+
+    if (m_data->type == AccountType::Ely) {
+        // Ely.by uses profile endpoint with nickname
+        QString username = m_data->minecraftProfile.name;
+        if (username.isEmpty()) {
+            emit finished(AccountTaskState::STATE_FAILED_SOFT, tr("Username is empty."));
+            return;
+        }
+        QString profileUrl = QString("https://authserver.ely.by/profile/%1").arg(username);
+        url = QUrl(profileUrl);
+        QString accessToken = m_data->yggdrasilToken.token;
+        QString clientToken = m_data->yggdrasilToken.extra.value("clientToken").toString();
+        headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(accessToken).toUtf8());
+        headers << Net::HeaderPair("clientToken", clientToken.toUtf8());
+    } else {
+        // MSA and other accounts use Minecraft Services API
+        url = QUrl("https://api.minecraftservices.com/minecraft/profile");
+        headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8());
+    }
 
     auto [request, response] = Net::Download::makeByteArray(url);
     m_request = request;
@@ -43,6 +56,12 @@ void MinecraftProfileStep::perform()
 
 void MinecraftProfileStep::onRequestDone(QByteArray* response)
 {
+    // Handle HTTP 204 No Content (Ely.by returns this when profile not found)
+    if (m_request->replyStatusCode() == 204) {
+        // NOTE: Succeed even if we do not have a profile. This is a valid account state.
+        emit finished(AccountTaskState::STATE_WORKING, tr("Account has no Minecraft profile."));
+        return;
+    }
     if (m_request->error() == QNetworkReply::ContentNotFoundError) {
         // NOTE: Succeed even if we do not have a profile. This is a valid account state.
         m_data->minecraftProfile = MinecraftProfile();
@@ -67,7 +86,14 @@ void MinecraftProfileStep::onRequestDone(QByteArray* response)
         }
         return;
     }
-    if (!Parsers::parseMinecraftProfile(*response, m_data->minecraftProfile)) {
+    // Use appropriate parser based on account type
+    bool parsed = false;
+    if (m_data->type == AccountType::Ely) {
+        parsed = Parsers::parseMinecraftProfileMojang(*response, m_data->minecraftProfile);
+    } else {
+        parsed = Parsers::parseMinecraftProfile(*response, m_data->minecraftProfile);
+    }
+    if (!parsed) {
         m_data->minecraftProfile = MinecraftProfile();
         emit finished(AccountTaskState::STATE_FAILED_SOFT, tr("Minecraft Java profile response could not be parsed"));
         return;

@@ -11,9 +11,9 @@ on:
   workflow_call:
     inputs:
       build-type:
-        description: Type of build (Debug or Release)
+        description: Type of build (Debug or Release).
         type: string
-        default: Debug
+        default: Release
       target-os:
         description: Target OS to build. Use 'windows' to only build Windows.
         type: string
@@ -36,9 +36,12 @@ on:
   workflow_dispatch:
     inputs:
       build-type:
-        description: Type of build (Debug or Release)
-        type: string
-        default: Debug
+        description: Type of build (Debug or Release).
+        type: choice
+        default: Release
+        options:
+          - Debug
+          - Release
       target-os:
         description: Target OS to build. Use 'windows' to only build Windows.
         type: choice

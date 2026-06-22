@@ -23,14 +23,21 @@ QString EntitlementsStep::describe()
 
 void EntitlementsStep::perform()
 {
-    m_entitlements_request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    // Define request URL for Ely entitlements endpoint
-    QUrl url(QString("https://api.ely.by/entitlements/license?requestId=%1").arg(m_entitlements_request_id));
-    // Build headers list for the request
+    QUrl url;
     QList<Net::HeaderPair> headers;
     headers << Net::HeaderPair("Content-Type", "application/json");
     headers << Net::HeaderPair("Accept", "application/json");
-    headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8());
+
+    if (m_data->type == AccountType::Ely) {
+        // Ely.by entitlements endpoint
+        m_entitlements_request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        url = QUrl(QString("https://api.ely.by/entitlements/license?requestId=%1").arg(m_entitlements_request_id));
+        headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8());
+    } else {
+        // MSA uses Minecraft Services entitlements endpoint
+        url = QUrl("https://api.minecraftservices.com/entitlements/mcstore");
+        headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8());
+    }
 
     auto [request, response] = Net::Download::makeByteArray(url);
     m_request = request;
