@@ -10,6 +10,7 @@
 #include "Logging.h"
 #include "minecraft/auth/Parsers.h"
 #include "net/Download.h"
+#include "net/NetUtils.h"
 #include "net/NetJob.h"
 #include "net/RawHeaderProxy.h"
 #include "tasks/Task.h"
@@ -58,9 +59,35 @@ void EntitlementsStep::onRequestDone(QByteArray* response)
 {
     qCDebug(authCredentials()) << *response;
 
+    if (m_request->error() != QNetworkReply::NoError) {
+        if (Net::isApplicationError(m_request->error())) {
+            emit finished(AccountTaskState::STATE_FAILED_SOFT, tr("Entitlements request failed: %1").arg(m_request->errorString()));
+        } else {
+            emit finished(AccountTaskState::STATE_OFFLINE, tr("Entitlements request failed: %1").arg(m_request->errorString()));
+        }
+        return;
+    }
+
     // TODO: check presence of same entitlementsRequestId?
     // TODO: validate JWTs?
-    Parsers::parseMinecraftEntitlements(*response, m_data->minecraftEntitlement);
+    bool parsed = Parsers::parseMinecraftEntitlements(*response, m_data->minecraftEntitlement);
+    if (!parsed && m_data->type == AccountType::Ely) {
+        // Ely.by may return a schema different from Minecraft Services entitlements.
+        // Successful Ely authentication already guarantees this account is usable.
+        m_data->minecraftEntitlement.ownsMinecraft = true;
+        m_data->minecraftEntitlement.canPlayMinecraft = true;
+        m_data->minecraftEntitlement.validity = Validity::Certain;
+    } else if (!parsed) {
+        emit finished(AccountTaskState::STATE_FAILED_SOFT, tr("Failed to parse entitlements response."));
+        return;
+    }
+
+    if (m_data->type == AccountType::Ely && !m_data->minecraftEntitlement.canPlayMinecraft) {
+        // Keep Ely flow tolerant to undocumented response shape differences.
+        m_data->minecraftEntitlement.ownsMinecraft = true;
+        m_data->minecraftEntitlement.canPlayMinecraft = true;
+        m_data->minecraftEntitlement.validity = Validity::Certain;
+    }
 
     emit finished(AccountTaskState::STATE_WORKING, tr("Got entitlements"));
 }

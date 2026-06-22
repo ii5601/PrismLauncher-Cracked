@@ -32,7 +32,7 @@ void YggdrasilStep::perform()
     }
     QString endpoint;
     if (authServer.isEmpty()) {
-        endpoint = QString("https://authserver.ely.by");
+        endpoint = QString("https://authserver.ely.by/auth/authenticate");
     } else {
         QUrl authUrl(authServer.trimmed());
         if (authUrl.scheme().isEmpty()) {
