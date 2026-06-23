@@ -264,6 +264,8 @@ set(MINECRAFT_SOURCES
     minecraft/launch/CreateGameFolders.h
     minecraft/launch/EnsureAvailableMemory.cpp
     minecraft/launch/EnsureAvailableMemory.h
+    minecraft/launch/EnsureElyAuthlibInjector.cpp
+    minecraft/launch/EnsureElyAuthlibInjector.h
     minecraft/launch/EnsureOfflineLibraries.cpp
     minecraft/launch/EnsureOfflineLibraries.h
     minecraft/launch/ModMinecraftJar.cpp

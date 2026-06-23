@@ -60,6 +60,7 @@
 #include "minecraft/launch/ClaimAccount.h"
 #include "minecraft/launch/CreateGameFolders.h"
 #include "minecraft/launch/EnsureAvailableMemory.h"
+#include "minecraft/launch/EnsureElyAuthlibInjector.h"
 #include "minecraft/launch/EnsureOfflineLibraries.h"
 #include "minecraft/launch/ExtractNatives.h"
 #include "minecraft/launch/LauncherPartLaunch.h"
@@ -1183,6 +1184,7 @@ LaunchTask* MinecraftInstance::createLaunchTask(AuthSessionPtr session, Minecraf
         for (auto t : createUpdateTask()) {
             process->appendStep(makeShared<TaskStepWrapper>(pptr, t));
         }
+        process->appendStep(makeShared<EnsureElyAuthlibInjector>(pptr, this, session));
     } else {
         process->appendStep(makeShared<EnsureOfflineLibraries>(pptr, this));
     }
