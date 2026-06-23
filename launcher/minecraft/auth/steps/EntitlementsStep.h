@@ -20,7 +20,6 @@ class EntitlementsStep : public AuthStep {
     void onRequestDone(QByteArray* response);
 
    private:
-    QString m_entitlements_request_id;
     Net::Download::Ptr m_request;
     NetJob::Ptr m_task;
 };
