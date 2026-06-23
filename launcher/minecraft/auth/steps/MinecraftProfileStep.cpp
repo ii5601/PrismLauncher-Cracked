@@ -18,25 +18,23 @@ void MinecraftProfileStep::perform()
 {
     QUrl url;
     QList<Net::HeaderPair> headers;
-    headers << Net::HeaderPair("Content-Type", "application/json");
     headers << Net::HeaderPair("Accept", "application/json");
 
     if (m_data->type == AccountType::Ely) {
-        // Ely.by uses profile endpoint with nickname
-        QString username = m_data->minecraftProfile.name;
-        if (username.isEmpty()) {
-            emit finished(AccountTaskState::STATE_FAILED_SOFT, tr("Username is empty."));
+        // Ely.by profile data is available through session profile endpoint by UUID.
+        QString profileId = m_data->minecraftProfile.id;
+        profileId.remove('-');
+        if (profileId.isEmpty()) {
+            m_data->minecraftProfile = MinecraftProfile();
+            emit finished(AccountTaskState::STATE_WORKING, tr("Account has no Minecraft profile."));
             return;
         }
-        QString profileUrl = QString("https://authserver.ely.by/profile/%1").arg(username);
+        QString profileUrl = QString("https://authserver.ely.by/session/profile/%1").arg(profileId);
         url = QUrl(profileUrl);
-        QString accessToken = m_data->yggdrasilToken.token;
-        QString clientToken = m_data->yggdrasilToken.extra.value("clientToken").toString();
-        headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(accessToken).toUtf8());
-        headers << Net::HeaderPair("clientToken", clientToken.toUtf8());
     } else {
         // MSA and other accounts use Minecraft Services API
         url = QUrl("https://api.minecraftservices.com/minecraft/profile");
+        headers << Net::HeaderPair("Content-Type", "application/json");
         headers << Net::HeaderPair("Authorization", QString("Bearer %1").arg(m_data->yggdrasilToken.token).toUtf8());
     }
 
