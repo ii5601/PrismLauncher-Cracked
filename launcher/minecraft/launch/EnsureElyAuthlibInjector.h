@@ -4,6 +4,8 @@
 #include <QString>
 
 #include <launch/LaunchStep.h>
+#include <net/Download.h>
+#include <net/NetJob.h>
 
 #include "minecraft/auth/AuthSession.h"
 

@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QNetworkReply>
 #include <QUuid>
 
 #include "Application.h"
@@ -101,7 +102,8 @@ void EnsureElyAuthlibInjector::onDownloadFinished()
     }
 
     auto profile = m_instance->getPackProfile();
-    if (!profile->installAgents(QStringList{ m_downloadPath })) {
+    profile->installAgents(QStringList{ m_downloadPath });
+    if (!alreadyInstalled()) {
         emit logLine(tr("Downloaded authlib-injector, but failed to install it as a Java agent. Game will still start."), MessageLevel::Warning);
         cleanupTempFile();
         emitSucceeded();
